@@ -1,332 +1,96 @@
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import {
-  Camera,
-  MapPin,
-  Calendar,
-  Gift,
-  Phone,
-  FileText,
-  Package,
-  Map,
-} from "lucide-react";
-import { useAuth } from "../contexts/AuthContext";
-import { supabase } from "../lib/supabase";
-import toast from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
-import MapLocationPicker from "../components/MapLocationPicker";
-import GoogleAuthButton from "./GoogleAuthButton";
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Mail, Lock, AlertTriangle, UserPlus, LogIn } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import GoogleAuthButton from './GoogleAuthButton';
 
-interface Category {
-  id: string;
-  name: string;
-  icon: string;
-}
-
-export default function ReportPage() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [categories, setCategories] = useState<Category[]>([]);
+export default function AuthForm() {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showMapPicker, setShowMapPicker] = useState(false);
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    category_id: "",
-    location: "",
-    date_lost: "",
-    contact_phone: "",
-    reward_amount: "",
-    image_url: "",
-    location_lat: null as number | null,
-    location_lng: null as number | null,
-    location_description: "",
-  });
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("categories")
-        .select("*")
-        .order("name");
-
-      if (error) throw error;
-      setCategories(data || []);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-    }
-  };
+  const { signIn, signUp } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
-
     setLoading(true);
 
     try {
-      const { error } = await supabase.from("lost_items").insert([
-        {
-          ...formData,
-          user_id: user.id,
-          reward_amount: formData.reward_amount
-            ? parseInt(formData.reward_amount)
-            : null,
-          location_lat: formData.location_lat,
-          location_lng: formData.location_lng,
-          location_description: formData.location_description,
-        },
-      ]);
-
-      if (error) throw error;
-
-      toast.success("Laporan berhasil dibuat!");
-      navigate("/profile");
+      if (isLogin) {
+        await signIn(email, password);
+        navigate('/');
+      } else {
+        await signUp(email, password);
+        navigate('/');
+      }
     } catch (error) {
-      console.error("Error creating report:", error);
-      toast.error("Gagal membuat laporan");
+      console.error('Auth error:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => ({
-          ...prev,
-          image_url: reader.result as string, // ini yang hasil base64 data URL
-        }));
-        toast.success("Foto berhasil diunggah!");
-      };
-      reader.readAsDataURL(file); // terus  ini membaca file jadi base64 data URL
-    }
-  };
-
-  const handleLocationSelect = (location: {
-    address: string;
-    lat: number;
-    lng: number;
-    description: string;
-  }) => {
-    setFormData((prev) => ({
-      ...prev,
-      location: location.address,
-      location_lat: location.lat,
-      location_lng: location.lng,
-      location_description: location.description,
-    }));
-  };
-
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen flex items-center justify-center p-4">
       <motion.div
+        className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-8 w-full max-w-md"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6 md:p-8"
       >
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Package className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Laporkan Barang Hilang
+          <motion.div
+            className="w-16 h-16 bg-gradient-to-r from-blue-500 to-green-500 rounded-2xl flex items-center justify-center mx-auto mb-4"
+            animate={{ rotate: [0, 360] }}
+            transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+          >
+            <AlertTriangle className="w-8 h-8 text-white" />
+          </motion.div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent mb-2">
+            DaruratKu
           </h1>
           <p className="text-gray-600">
-            Isi form di bawah untuk melaporkan barang yang hilang
+            {isLogin ? 'Masuk ke akun Anda' : 'Buat akun baru'}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Title */}
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              <FileText className="inline w-4 h-4 mr-1" />
-              Judul Laporan *
+              <Mail className="inline w-4 h-4 mr-1" />
+              Email
             </label>
             <input
-              type="text"
-              value={formData.title}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, title: e.target.value }))
-              }
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              placeholder="Contoh: iPhone 13 Pro Max Warna Biru"
+              placeholder="nama@email.com"
               required
             />
           </div>
 
-          {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Deskripsi Detail *
+              <Lock className="inline w-4 h-4 mr-1" />
+              Password
             </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  description: e.target.value,
-                }))
-              }
-              rows={4}
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              placeholder="Jelaskan ciri-ciri khusus, warna, merek, atau detail lainnya..."
+              placeholder="••••••••"
               required
+              minLength={6}
             />
           </div>
 
-          {/* Category */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Kategori Barang *
-            </label>
-            <select
-              value={formData.category_id}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  category_id: e.target.value,
-                }))
-              }
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              required
-            >
-              <option value="">Pilih kategori</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Location */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <MapPin className="inline w-4 h-4 mr-1" />
-                Lokasi Hilang *
-              </label>
-              <GoogleAuthButton
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="Contoh: Mall Taman Anggrek, Jakarta"
-                required
-              />
-            </div>
-
-            {/* Date Lost */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Calendar className="inline w-4 h-4 mr-1" />
-                Tanggal Hilang *
-              </label>
-              <input
-                type="date"
-                value={formData.date_lost}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    date_lost: e.target.value,
-                  }))
-                }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Contact Phone */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Phone className="inline w-4 h-4 mr-1" />
-                Nomor Telepon *
-              </label>
-              <input
-                type="tel"
-                value={formData.contact_phone}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    contact_phone: e.target.value,
-                  }))
-                }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="081234567890"
-                required
-              />
-            </div>
-
-            {/* Reward Amount */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Gift className="inline w-4 h-4 mr-1" />
-                Reward (Opsional)
-              </label>
-              <input
-                type="number"
-                value={formData.reward_amount}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    reward_amount: e.target.value,
-                  }))
-                }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="500000"
-                min="0"
-              />
-            </div>
-          </div>
-
-          {/* Image Upload */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Camera className="inline w-4 h-4 mr-1" />
-              Foto Barang (Opsional)
-            </label>
-            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-400 transition-colors">
-              <div className="space-y-1 text-center">
-                <Camera className="mx-auto h-12 w-12 text-gray-400" />
-                <div className="flex text-sm text-gray-600">
-                  <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
-                    <span>Upload foto</span>
-                    <input
-                      type="file"
-                      className="sr-only"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                    />
-                  </label>
-                  <p className="pl-1">atau drag and drop</p>
-                </div>
-                <p className="text-xs text-gray-500">
-                  PNG, JPG, GIF hingga 10MB
-                </p>
-              </div>
-            </div>
-            {formData.image_url && (
-              <div className="mt-4">
-                <img
-                  src={formData.image_url}
-                  alt="Preview"
-                  className="w-32 h-32 object-cover rounded-lg border border-gray-200"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Submit Button */}
           <motion.button
             type="submit"
             disabled={loading}
-            className="w-full py-4 px-6 bg-gradient-to-r from-red-500 to-orange-500 text-white font-medium rounded-lg hover:from-red-600 hover:to-orange-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+            className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-green-500 text-white font-medium rounded-lg hover:from-blue-600 hover:to-green-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
@@ -336,10 +100,45 @@ export default function ReportPage() {
                 Memproses...
               </div>
             ) : (
-              "Buat Laporan"
+              <div className="flex items-center justify-center space-x-2">
+                {isLogin ? <LogIn className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                <span>{isLogin ? 'Masuk' : 'Daftar'}</span>
+              </div>
             )}
           </motion.button>
         </form>
+
+        <div className="mt-6">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">Atau</span>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <GoogleAuthButton />
+          </div>
+        </div>
+
+        <div className="mt-6 text-center">
+          <button
+            type="button"
+            onClick={() => setIsLogin(!isLogin)}
+            className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+          >
+            {isLogin
+              ? 'Belum punya akun? Daftar'
+              : 'Sudah punya akun? Masuk'}
+          </button>
+        </div>
+
+        <div className="mt-6 text-center text-sm text-gray-500">
+          <p>Dengan masuk, Anda menyetujui</p>
+          <p>Syarat & Ketentuan dan Kebijakan Privasi kami</p>
+        </div>
       </motion.div>
     </div>
   );
