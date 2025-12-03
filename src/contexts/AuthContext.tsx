@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
     });
@@ -58,11 +58,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
 
+    if (data.session) {
+      setSession(data.session);
+      setUser(data.session.user);
+    }
+
     toast.success('Akun berhasil dibuat!');
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -70,6 +75,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) {
       toast.error('Email atau password salah');
       throw error;
+    }
+
+    if (data.session) {
+      setSession(data.session);
+      setUser(data.session.user);
     }
 
     toast.success('Berhasil masuk!');

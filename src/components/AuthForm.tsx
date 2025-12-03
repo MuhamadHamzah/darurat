@@ -20,14 +20,12 @@ export default function AuthForm() {
     try {
       if (isLogin) {
         await signIn(email, password);
-        navigate('/');
       } else {
         await signUp(email, password);
-        navigate('/');
       }
+      setTimeout(() => navigate('/'), 500);
     } catch (error) {
       console.error('Auth error:', error);
-    } finally {
       setLoading(false);
     }
   };
